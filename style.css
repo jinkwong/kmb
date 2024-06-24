@@ -1,0 +1,114 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 600px;
+  margin: 50px auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgb(212, 37, 37, 0.1);
+  border-radius: 8px;
+  box-sizing: border-box; /* 添加這行 */
+}
+
+h1 {
+  text-align: center;
+  color: #e83b3b;
+  padding: 10px;
+  font-size: 35px;
+  font-style: Copperplate;
+  border: 1px solid #cc7f7f;
+  animation: mymove 5s infinite;
+}
+
+@keyframes mymove {
+  50% {box-shadow: 10px 10px 20px #e29ca7;}
+}
+
+.search-box {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.search-box input {
+  width: 80%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+  outline: none;
+}
+
+.search-box button {
+  padding: 10px;
+  border: none;
+  background-color: #007BFF;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 0 4px 4px 0;
+}
+
+.search-box button:hover {
+  background-color: #0056b3;
+}
+
+.results {
+  margin-top: 20px;
+}
+
+.routeSearchedList button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.routeSearchedList button:hover {
+  background-color: #e2e6ea;
+}
+
+.stopList .stopNumber {
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+}
+
+.stopList .stopNumber:hover {
+  background-color: #e2e6ea;
+}
+
+.etaList {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  display: none; /* Initially hidden */
+}
+
+.etaItem {
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+   animation: mymove 5s infinite;
+}
+
+.etaItem span {
+  font-weight: bold;
+  margin-right: 10px; /* 添加這行 */
+}
