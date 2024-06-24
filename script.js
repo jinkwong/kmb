@@ -116,4 +116,10 @@ searchBtn.addEventListener("click", async () => {
     console.error(error);
   }
 });
+// 監聽輸入框的鍵盤事件，按下 Enter 鍵時觸發查詢
+searchbox.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    searchRoute();
+  }
+});
 
