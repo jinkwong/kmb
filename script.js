@@ -1,24 +1,29 @@
 // 選取元素
-let routeSearchedList = document.querySelector(".routeSearchedList");
-let searchbox = document.querySelector("#routeInput");
-let searchBtn = document.querySelector("#searchBtn");
-let stopID_name = {};
-let stopSearchedList = document.querySelector(".stopList");
-let alertContainer = document.querySelector(".alertContainer");
-let suggestionsBox = document.querySelector("#suggestions");
-let historyList = document.querySelector("#historyList");
-let allRoutes = [];
+const elements = {
+  routeSearchedList: document.querySelector(".routeSearchedList"),
+  searchbox: document.querySelector("#routeInput"),
+  searchBtn: document.querySelector("#searchBtn"),
+  stopID_name: {},
+  stopSearchedList: document.querySelector(".stopList"),
+  alertContainer: document.querySelector(".alertContainer"),
+  suggestionsBox: document.querySelector("#suggestions"),
+  historyList: document.querySelector("#historyList"),
+  allRoutes: []
+};
 
 // 獲取所有停靠站點的名稱
 window.addEventListener("load", async () => {
   try {
-    const stopNamesResponse = await axios("https://data.etabus.gov.hk/v1/transport/kmb/stop");
+    const [stopNamesResponse, routeNamesResponse] = await Promise.all([
+      axios("https://data.etabus.gov.hk/v1/transport/kmb/stop"),
+      axios("https://data.etabus.gov.hk/v1/transport/kmb/route/")
+    ]);
+
     stopNamesResponse.data.data.forEach(stop => {
-      stopID_name[stop.stop] = stop.name_tc;
+      elements.stopID_name[stop.stop] = stop.name_tc;
     });
 
-    const routeNamesResponse = await axios("https://data.etabus.gov.hk/v1/transport/kmb/route/");
-    allRoutes = routeNamesResponse.data.data.map(route => route.route);
+    elements.allRoutes = routeNamesResponse.data.data.map(route => route.route);
   } catch (error) {
     console.error(error);
   }
@@ -28,15 +33,13 @@ window.addEventListener("load", async () => {
 
 // 顯示提醒消息
 function showAlert(message) {
-  alertContainer.innerHTML = "";
-  const alertMessage = document.createElement("div");
-  alertMessage.className = "alertMessage";
-  alertMessage.innerHTML = message;
-  alertContainer.appendChild(alertMessage);
+  elements.alertContainer.innerHTML = `<div class="alertMessage">${message}</div>`;
 }
 
 // 查詢路線
 async function searchRoute() {
+  const { routeSearchedList, stopSearchedList, alertContainer, searchbox, stopID_name } = elements;
+
   routeSearchedList.innerHTML = "";
   stopSearchedList.innerHTML = "";
   alertContainer.innerHTML = "";
@@ -51,146 +54,146 @@ async function searchRoute() {
       return;
     }
 
-    // 保存查詢記錄
     saveHistory(searchbox.value.toUpperCase());
 
-    // 顯示查詢到的路線
     routeChecked.forEach((route, i) => {
       const routeSearched = document.createElement("button");
       routeSearched.id = `routeNumber-${i}`;
       routeSearched.innerHTML = `${route.orig_tc} -> ${route.dest_tc}`;
       routeSearchedList.appendChild(routeSearched);
 
-      // 點擊路線顯示停靠站點
-      routeSearched.addEventListener("click", async () => {
-        // 移除其他按鈕的 active 類
-        document.querySelectorAll('.routeSearchedList button').forEach(button => {
-          button.classList.remove('active');
-        });
-
-        // 添加 active 類到當前按鈕
-        routeSearched.classList.add('active');
-
-        stopSearchedList.innerHTML = "";
-        const routeboundConverted = route.bound === "O" ? "outbound" : "inbound";
-
-        try {
-          const stopResponse = await axios(
-            `https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route.route}/${routeboundConverted}/${route.service_type}`
-          );
-
-          stopResponse.data.data.forEach(stopInfo => {
-            const stopName = stopID_name[stopInfo.stop];
-            if (stopName) {
-              const stopContainer = document.createElement("div");
-              stopContainer.className = "stopContainer";
-
-              const stopCreate = document.createElement("div");
-              stopCreate.className = "stopNumber";
-              stopCreate.innerHTML = stopName;
-              stopContainer.appendChild(stopCreate);
-
-              const etaList = document.createElement("div");
-              etaList.className = "etaList";
-              stopContainer.appendChild(etaList);
-
-              stopSearchedList.appendChild(stopContainer);
-
-              // 滑鼠移動到停靠站點顯示 ETA
-              stopCreate.addEventListener("mouseover", async () => {
-                // 隱藏所有其他的 etaLists
-                document.querySelectorAll('.etaList').forEach(el => el.style.display = 'none');
-                etaList.innerHTML = "";
-
-                try {
-                  const etaResponse = await axios(
-                    `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopInfo.stop}`
-                  );
-
-                  etaResponse.data.data
-                    .filter(eta => eta.route === route.route)
-                    .forEach(eta => {
-                      const etaItem = document.createElement("div");
-                      etaItem.className = "etaItem";
-                      etaItem.innerHTML = `
-                        <span>巴士路線 : ${eta.route}</span>
-                        <span>預計到站時間: ${new Date(eta.eta).toLocaleTimeString()}</span>
-                      `;
-                      etaList.appendChild(etaItem);
-                    });
-
-                  etaList.style.display = 'block';
-                } catch (error) {
-                  console.error(error);
-                }
-              });
-
-              // 滑鼠移出停靠站點隱藏 ETA
-              stopCreate.addEventListener("mouseout", () => {
-                etaList.style.display = 'none';
-              });
-            }
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      });
+      routeSearched.addEventListener("click", () => displayStops(route, i));
     });
   } catch (error) {
     console.error(error);
   }
 }
 
+// 顯示停靠站點
+async function displayStops(route, index) {
+  const { stopSearchedList, stopID_name } = elements;
+  stopSearchedList.innerHTML = "";
+
+  document.querySelectorAll('.routeSearchedList button').forEach(button => {
+    button.classList.remove('active');
+  });
+
+  document.getElementById(`routeNumber-${index}`).classList.add('active');
+
+  const routeboundConverted = route.bound === "O" ? "outbound" : "inbound";
+
+  try {
+    const stopResponse = await axios(
+      `https://data.etabus.gov.hk/v1/transport/kmb/route-stop/${route.route}/${routeboundConverted}/${route.service_type}`
+    );
+
+    stopResponse.data.data.forEach(stopInfo => {
+      const stopName = stopID_name[stopInfo.stop];
+      if (stopName) {
+        const stopContainer = document.createElement("div");
+        stopContainer.className = "stopContainer";
+
+        const stopCreate = document.createElement("div");
+        stopCreate.className = "stopNumber";
+        stopCreate.innerHTML = stopName;
+        stopContainer.appendChild(stopCreate);
+
+        const etaList = document.createElement("div");
+        etaList.className = "etaList";
+        stopContainer.appendChild(etaList);
+
+        stopSearchedList.appendChild(stopContainer);
+
+        stopCreate.addEventListener("mouseover", () => displayETA(stopInfo.stop, route.route, etaList));
+        stopCreate.addEventListener("mouseout", () => {
+          etaList.style.display = 'none';
+        });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// 顯示 ETA
+async function displayETA(stopId, route, etaList) {
+  etaList.innerHTML = "";
+
+  try {
+    const etaResponse = await axios(
+      `https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/${stopId}`
+    );
+
+    etaResponse.data.data
+      .filter(eta => eta.route === route)
+      .forEach(eta => {
+        const etaItem = document.createElement("div");
+        etaItem.className = "etaItem";
+        etaItem.innerHTML = `
+          <span>巴士路線 : ${eta.route}</span>
+          <span>預計到站時間: ${new Date(eta.eta).toLocaleTimeString()}</span>
+        `;
+        etaList.appendChild(etaItem);
+      });
+
+    etaList.style.display = 'block';
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 // 自動完成建議
-searchbox.addEventListener("input", () => {
-  const input = searchbox.value.toUpperCase();
-  suggestionsBox.innerHTML = "";
+elements.searchbox.addEventListener("input", () => {
+  const input = elements.searchbox.value.toUpperCase();
+  elements.suggestionsBox.innerHTML = "";
   if (input) {
-    const suggestions = allRoutes.filter(route => route.startsWith(input));
+    const suggestions = elements.allRoutes.filter(route => route.startsWith(input));
     suggestions.forEach(suggestion => {
       const suggestionItem = document.createElement("div");
       suggestionItem.className = "suggestion-item";
       suggestionItem.innerHTML = suggestion;
       suggestionItem.addEventListener("click", () => {
-        searchbox.value = suggestion;
-        suggestionsBox.innerHTML = "";
+        elements.searchbox.value = suggestion;
+        elements.suggestionsBox.innerHTML = "";
       });
-      suggestionsBox.appendChild(suggestionItem);
+      elements.suggestionsBox.appendChild(suggestionItem);
     });
   }
 });
 
-// 保存查詢歷史
+// 保存查詢記錄
 function saveHistory(route) {
-  let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+  let history = JSON.parse(localStorage.getItem('routeHistory')) || [];
   if (!history.includes(route)) {
     history.push(route);
-    localStorage.setItem('searchHistory', JSON.stringify(history));
-    loadHistory();
+    localStorage.setItem('routeHistory', JSON.stringify(history));
   }
+  loadHistory();
 }
 
-// 加載查詢歷史
+// 加載查詢記錄
 function loadHistory() {
-  historyList.innerHTML = "";
-  let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+  const history = JSON.parse(localStorage.getItem('routeHistory')) || [];
+  elements.historyList.innerHTML = "";
   history.forEach(route => {
-    const historyItem = document.createElement("li");
+    const historyItem = document.createElement("div");
+    historyItem.className = "history-item";
     historyItem.innerHTML = route;
     historyItem.addEventListener("click", () => {
-      searchbox.value = route;
+      elements.searchbox.value = route;
       searchRoute();
     });
-    historyList.appendChild(historyItem);
+    elements.historyList.appendChild(historyItem);
   });
 }
 
-// 監聽查詢按鈕的點擊事件
-searchBtn.addEventListener("click", searchRoute);
+// 為查詢按鈕添加事件監聽
+elements.searchBtn.addEventListener("click", searchRoute);
 
-// 監聽輸入框的鍵盤事件，按下 Enter 鍵時觸發查詢
-searchbox.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
+// 為輸入框添加鍵盤事件監聽
+elements.searchbox.addEventListener("keypress", (e) => {
+  if (e.key === 'Enter') {
     searchRoute();
   }
 });
+
